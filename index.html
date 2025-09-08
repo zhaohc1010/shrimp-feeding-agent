@@ -1,0 +1,578 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>凡纳滨对虾智能投喂体</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f0f4f8;
+        }
+        .form-input {
+            transition: all 0.3s ease;
+        }
+        .form-input:focus {
+            box-shadow: 0 0 0 3px rgba(66, 153, 225, 0.5);
+            border-color: #4299e1;
+        }
+        .card {
+            background-color: white;
+            border-radius: 0.75rem;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            transition: all 0.3s ease;
+        }
+        .btn-primary {
+            background-color: #3b82f6;
+            color: white;
+            transition: background-color 0.3s ease;
+        }
+        .btn-primary:hover {
+            background-color: #2563eb;
+        }
+        .loader {
+            border-top-color: #3498db;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        .result-card h3 {
+            border-bottom: 2px solid #e2e8f0;
+            padding-bottom: 0.5rem;
+            margin-bottom: 1rem;
+            font-weight: 600;
+        }
+        /* 美化滚动条 */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 10px;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #888;
+            border-radius: 10px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #555;
+        }
+    </style>
+</head>
+<body class="p-4 md:p-8">
+    <div class="max-w-7xl mx-auto">
+        <!-- 头部 -->
+        <header class="text-center mb-8">
+            <div class="inline-flex items-center space-x-3">
+                <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-blue-600"><path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z"/><path d="m9 12 2 2 4-4"/></svg>
+                <h1 class="text-3xl md:text-4xl font-bold text-gray-800">凡纳滨对虾智能投喂体</h1>
+            </div>
+            <p class="mt-2 text-gray-500">结合机器学习与专家知识，提供精准投喂决策</p>
+        </header>
+
+        <main class="grid grid-cols-1 lg:grid-cols-5 gap-8">
+            <!-- 左侧：输入表单 -->
+            <div class="lg:col-span-2">
+                <div class="card p-6 sticky top-8">
+                    <h2 class="text-xl font-semibold text-gray-700 mb-6">养殖参数输入</h2>
+
+                    <form id="feedingForm" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <!-- 输入字段将由JS动态生成 -->
+                    </form>
+                    <button id="predictBtn" class="w-full mt-6 py-3 px-4 rounded-lg font-semibold btn-primary flex items-center justify-center">
+                        <svg id="btn-icon" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mr-2"><path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z"/><path d="m9 12 2 2 4-4"/></svg>
+                        <span id="btn-text">开始预测</span>
+                        <div id="loader" class="loader w-5 h-5 rounded-full border-2 border-t-blue-500 hidden ml-2"></div>
+                    </button>
+                </div>
+            </div>
+
+            <!-- 右侧：结果与日志 -->
+            <div class="lg:col-span-3">
+                <!-- 结果展示区 -->
+                <div id="result-container" class="card p-6 hidden">
+                    <h2 class="text-2xl font-semibold text-gray-800 mb-6">智能决策结果</h2>
+                    <div id="result-content" class="space-y-6">
+                        <!-- 结果将由JS动态生成 -->
+                    </div>
+                </div>
+
+                <!-- 日志区 -->
+                <div class="card p-6 mt-8">
+                    <div class="flex justify-between items-center mb-4">
+                        <h2 class="text-xl font-semibold text-gray-700">历史投喂日志</h2>
+                        <button id="downloadLogBtn" class="py-2 px-4 rounded-lg text-sm font-semibold bg-gray-200 text-gray-700 hover:bg-gray-300 transition">下载日志 (CSV)</button>
+                    </div>
+                    <div id="log-table-container" class="overflow-x-auto">
+                        <table class="min-w-full divide-y divide-gray-200">
+                            <thead class="bg-gray-50">
+                                <!-- 表头将由JS生成 -->
+                            </thead>
+                            <tbody id="log-table-body" class="bg-white divide-y divide-gray-200">
+                                <!-- 日志行将由JS生成 -->
+                            </tbody>
+                        </table>
+                         <p id="no-log-message" class="text-center text-gray-500 py-4">暂无日志记录。</p>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+<script>
+// ==============================================================================
+//                                 应用主逻辑
+// ==============================================================================
+document.addEventListener('DOMContentLoaded', () => {
+
+    // --- 【修改】API Key 已内置 ---
+    const API_KEY = "sk-8d6c432702a4421191227f08f28f5cb8";
+    // 警告：将API密钥直接嵌入前端代码存在安全风险，任何访问者都可以看到它。
+    // 此方法仅适用于个人或内部可信环境。
+
+    // --- 知识库内容 (从 Feeding rules.docx 提取并硬编码) ---
+    const KNOWLEDGE_BASE_CONTENT = `
+# 凡纳滨对虾高级投喂管理知识库
+
+## 一、核心投喂原则
+1.  **观察优先原则**：任何投喂决策都应以料台（或食台）的检查结果为基础。料台在一小时内吃完为佳，有剩余则说明投喂过量，下次应减少。
+2.  **稳健原则**：在不确定是否应该增加或减少投喂量时，优先选择“减少”或“维持”，避免因投喂过量导致水质恶化。
+3.  **动态调整原则**：投喂量不是一成不变的，必须根据对虾的健康状况、水质、天气等因素每日进行动态微调。
+
+## 二、关键状态观测与投喂调整
+### 1. 对虾活力与体色
+- **活力强，体色通透，肠道饱满**：表明对虾健康，摄食欲望强。可维持或酌情增加投喂量。
+- **活力差，趴边，反应迟钝**：这是强烈的应激或亚健康信号。应**显著减少投喂量（减少30%-50%）**，甚至暂停一餐，并立即排查水质、溶氧或病害原因。
+- **空肠空胃**：若多数对虾出现空肠，应**立即停止投喂**，并检查是否存在病害。
+
+### 2. 蜕壳周期
+- **集中蜕壳期前（约1-2天）**：对虾摄食量会开始下降，应**主动减少10%-20%**的投喂量。
+- **集中蜕壳当天**：对虾摄食量降至最低，应**大幅减少投喂量（减少30%-50%）**，以减轻其生理负担。
+- **集中蜕壳后**：对虾恢复摄食，体质需要营养。此时应**逐步增加投喂量**，可比蜕壳前增加10%-15%，帮助其快速硬壳和生长。
+
+## 三、水质环境因素与投喂调整
+### 1. 溶解氧 (DO)
+- **DO > 5 mg/L**：溶氧充足，保障正常投喂。
+- **DO 处于 3-4 mg/L**：溶氧偏低，对虾摄食会受影响，应**减少投喂量（减少20%-30%）**。
+- **DO < 3 mg/L**：溶氧严重不足，对虾处于严重应激状态，应**立即停止投喂**，并全力增氧。
+
+## 四、外部环境因素与投喂调整
+### 1. 天气变化
+- **天气突变（如暴雨、台风、气温骤降）**：水体环境剧烈变化，对虾产生强烈应激，摄食几乎停止。应**大幅减少投喂量（减少50%以上）**，甚至停喂一至两天。
+`;
+
+    // --- 表单定义 ---
+    const formFields = [
+        { id: "month_day", label: "月日 (Month-Day)", type: "number", placeholder: "例如: 709" },
+        { id: "system_id", label: "系统ID (System ID)", type: "number", placeholder: "例如: 114" },
+        { id: "average_water_temp", label: "平均水温 (°C)", type: "number", placeholder: "例如: 30" },
+        { id: "average_do", label: "平均溶解氧 (mg/L)", type: "number", placeholder: "例如: 8" },
+        { id: "average_ph", label: "平均pH值", type: "number", placeholder: "例如: 8" },
+        { id: "ammonia_nitrogen", label: "氨氮浓度 (mg/L)", type: "number", placeholder: "例如: 0.05" },
+        { id: "nitrite_nitrogen", label: "亚硝酸盐浓度 (mg/L)", type: "number", placeholder: "例如: 0.06" },
+        { id: "water_change_amount", label: "换水量 (tons)", type: "number", placeholder: "例如: 0" },
+        { id: "water_change_rate", label: "换水率 (%)", type: "number", placeholder: "例如: 0" },
+        { id: "age_in_days", label: "养殖天数 (Days)", type: "number", placeholder: "例如: 29" },
+        { id: "weight", label: "平均体重 (g)", type: "number", placeholder: "例如: 2" },
+        { id: "shrimp_loading_cap", label: "存塘量 (kg/m³)", type: "number", placeholder: "例如: 6" },
+        { id: "water_body_capacity", label: "水体容量 (m³)", type: "number", placeholder: "例如: 625" },
+        { id: "survival_rate", label: "成活率预估", type: "number", placeholder: "例如: 0.94" },
+        { id: "avg_daily_weight_gain", label: "日均增重 (g)", type: "number", placeholder: "例如: 0.5" },
+        { id: "number_of_meals", label: "日投喂餐数", type: "number", placeholder: "例如: 15" },
+        { id: "actual_feeding_amount", label: "实际投喂量 (kg) [可选]", type: "number", placeholder: "选填" },
+        { id: "remarks", label: "备注 [可选]", type: "textarea", placeholder: "例如: 对虾活力不佳，有蜕壳现象" }
+    ];
+
+    const formElement = document.getElementById('feedingForm');
+    formFields.forEach(field => {
+        const wrapper = document.createElement('div');
+        if (field.type === 'textarea') {
+            wrapper.className = 'md:col-span-2';
+            wrapper.innerHTML = `
+                <label for="${field.id}" class="block text-sm font-medium text-gray-600 mb-1">${field.label}</label>
+                <textarea id="${field.id}" placeholder="${field.placeholder}" rows="3" class="w-full p-2 border border-gray-300 rounded-md form-input"></textarea>
+            `;
+        } else {
+            wrapper.innerHTML = `
+                <label for="${field.id}" class="block text-sm font-medium text-gray-600 mb-1">${field.label}</label>
+                <input type="${field.type}" id="${field.id}" step="any" placeholder="${field.placeholder}" class="w-full p-2 border border-gray-300 rounded-md form-input">
+            `;
+        }
+        formElement.appendChild(wrapper);
+    });
+
+    // --- UI 元素 ---
+    const predictBtn = document.getElementById('predictBtn');
+    const resultContainer = document.getElementById('result-container');
+    const resultContent = document.getElementById('result-content');
+    const downloadLogBtn = document.getElementById('downloadLogBtn');
+    const logTableBody = document.getElementById('log-table-body');
+    const logTableContainer = document.getElementById('log-table-container');
+    const noLogMessage = document.getElementById('no-log-message');
+
+    // --- 日志系统 (localStorage) ---
+    const logHeaders = ['Date', 'month_day', 'system_id', 'weight', 'shrimp_loading_cap', 'LGBM_Prediction_kg', 'Formula_Prediction_kg', 'Final_Predicted_Amount_kg', 'Actual_Feeding_Amount_kg', 'Remarks'];
+
+    // --- 初始化 ---
+    loadLog();
+
+    predictBtn.addEventListener('click', handlePrediction);
+    downloadLogBtn.addEventListener('click', downloadLog);
+
+    // ==============================================================================
+    //                               核心预测逻辑
+    // ==============================================================================
+
+    async function handlePrediction() {
+        if (predictBtn.disabled) return;
+
+        // 【修改】直接使用内置的API_KEY常量
+        const apiKey = API_KEY;
+        if (!apiKey) {
+            alert('API Key未在代码中设置。');
+            return;
+        }
+
+        const userData = {};
+        let formIsValid = true;
+        formFields.forEach(field => {
+            const input = document.getElementById(field.id);
+            const value = input.value;
+            if (!value && field.id !== 'actual_feeding_amount' && field.id !== 'remarks') {
+                formIsValid = false;
+                input.classList.add('border-red-500');
+            } else {
+                input.classList.remove('border-red-500');
+                if (field.type === 'number' && value) {
+                    userData[field.id] = parseFloat(value);
+                } else {
+                    userData[field.id] = value;
+                }
+            }
+        });
+
+        if (!formIsValid) {
+            alert('请填写所有必填字段。');
+            return;
+        }
+
+        setLoading(true);
+        resultContainer.classList.add('hidden');
+
+        try {
+            const lgbmPrediction = predictWithLightGBM_simulated(userData);
+            const [formulaPrediction, formulaExplanation] = calculateFromFormulas(userData);
+
+            let finalRecommendationText = "";
+
+            if (userData.remarks) {
+                const historicalData = getHistoricalDataAsString();
+                finalRecommendationText = await getFinalDecisionWithRemarks(lgbmPrediction, {pred: formulaPrediction, explanation: formulaExplanation}, userData, historicalData, apiKey);
+            } else {
+                finalRecommendationText =
+                    `根据LightGBM模型的计算，建议的投喂量为 ${lgbmPrediction.toFixed(4)} 公斤。\n` +
+                    `由于未提供备注信息，系统默认采纳此数据驱动模型的预测结果。\n\n` +
+                    `【最终投喂量】: ${lgbmPrediction.toFixed(4)}`;
+            }
+
+            displayResults(lgbmPrediction, {pred: formulaPrediction, explanation: formulaExplanation}, finalRecommendationText);
+            logData(userData, lgbmPrediction, formulaPrediction, finalRecommendationText);
+
+        } catch (error) {
+            console.error("预测过程中发生错误:", error);
+            displayError(error.message);
+        } finally {
+            setLoading(false);
+        }
+    }
+
+    /**
+     * 模拟 LightGBM 模型预测
+     */
+    function predictWithLightGBM_simulated(data) {
+        const baseFeed = (data.weight / 1000) * data.shrimp_loading_cap * data.water_body_capacity * 0.05;
+        let tempFactor = 1.0;
+        if (data.average_water_temp < 25) tempFactor = 0.8;
+        if (data.average_water_temp > 31) tempFactor = 0.9;
+        let doFactor = 1.0;
+        if (data.average_do < 5) doFactor = 0.7;
+        const prediction = baseFeed * tempFactor * doFactor * (data.survival_rate || 1.0);
+        return prediction > 0 ? prediction : 0;
+    }
+
+    /**
+     * 根据硬编码公式计算投喂量
+     */
+    function calculateFromFormulas(data) {
+        const { weight, shrimp_loading_cap, water_body_capacity } = data;
+        if (!weight || !shrimp_loading_cap || !water_body_capacity || weight <= 0) {
+            return [null, "缺少计算所需的关键参数（体重、存塘量、水体容量）。"];
+        }
+
+        const estimated_shrimp_count = (shrimp_loading_cap * 500 * water_body_capacity) / weight;
+
+        let coeffs = null;
+        if (weight >= 0.50 && weight <= 0.60) coeffs = [0.144, 0.162];
+        else if (weight >= 0.98 && weight <= 1.12) coeffs = [0.129, 0.134];
+        else if (weight >= 1.79 && weight <= 2.12) coeffs = [0.097, 0.099];
+        else if (weight >= 2.72 && weight <= 3.29) coeffs = [0.084, 0.085];
+        else if (weight >= 3.94 && weight <= 5.10) coeffs = [0.065, 0.076];
+        else if (weight >= 5.32 && weight <= 6.76) coeffs = [0.061, 0.072];
+        else if (weight >= 7.46 && weight <= 8.93) coeffs = [0.058, 0.062];
+        else if (weight >= 9.62 && weight <= 11.63) coeffs = [0.045, 0.052];
+        else if (weight >= 11.63 && weight <= 13.51) coeffs = [0.040, 0.044];
+        else if (weight >= 13.51 && weight <= 15.63) coeffs = [0.032, 0.040];
+        else if (weight >= 16.13 && weight <= 16.67) coeffs = [0.032, 0.037];
+        else if (weight >= 17.80 && weight <= 18.00) coeffs = [0.030, 0.030];
+        else if (weight >= 19.20 && weight <= 19.40) coeffs = [0.025, 0.025];
+        else if (weight >= 20.00 && weight <= 20.83) coeffs = [0.025, 0.025];
+
+        if (!coeffs) {
+            return [null, `当前对虾体重 ${weight}g 未匹配到任何预设的投喂系数范围。`];
+        }
+
+        const low_bound = weight * coeffs[0] * estimated_shrimp_count * 0.001;
+        const high_bound = weight * coeffs[1] * estimated_shrimp_count * 0.001;
+        const average_prediction = (low_bound + high_bound) / 2;
+
+        const explanation = `
+            - 预估对虾数量: ${estimated_shrimp_count.toFixed(0)} 尾
+            - 匹配体重范围: ${weight}g, 使用系数 ${coeffs[0]} 至 ${coeffs[1]}
+            - 计算投喂量范围: ${low_bound.toFixed(4)} kg 至 ${high_bound.toFixed(4)} kg
+            - 取平均值作为预测结果。`;
+
+        return [average_prediction, explanation];
+    }
+
+    /**
+     * 调用LLM进行最终决策
+     */
+    async function getFinalDecisionWithRemarks(lgbmPred, formulaPred, userData, historicalDataStr, apiKey) {
+        const system_prompt = `
+        你是一位经验丰富的对虾养殖首席专家。你的任务是作为最终决策者。
+        现在有四个信息源供你参考：
+        1. 【LightGBM模型预测值】: 一个纯数据驱动的机器学习模型结果。
+        2. 【内置公式计算结果】: 基于固定规则和公式的计算结果。
+        3. 【用户备注】: 当天的一些特殊情况说明。
+        4. 【历史投喂记录】: 最近几天的养殖数据、预测值和实际投喂量记录。
+        5. 【知识库全文】: 提供了养殖的宏观策略和背景知识。
+
+        你的决策流程必须是：
+        1. 优先分析【用户备注】中的关键信息。
+        2. 查阅【历史投喂记录】和【知识库全文】，理解备注信息对投喂量的影响。
+        3. 综合所有信息，评估两个模型的预测值哪个更合理，或提出一个更优的调整值。
+        4. 做出最终选择，并详细解释你做出此决策的完整理由。
+        5. 在回答的最后，必须另起一行，并严格按照 '【最终投喂量】: XX.XX' 的格式给出你最终采纳的投喂量数值。
+        `;
+
+        const user_prompt = `
+        【LightGBM模型预测值】: ${lgbmPred.toFixed(4)} kg
+
+        【内置公式计算结果】: ${formulaPred.pred.toFixed(4)} kg
+        计算依据: ${formulaPred.explanation}
+        ---
+
+        【历史投喂记录】 (最近10条):
+        ---
+        ${historicalDataStr}
+        ---
+
+        【知识库全文】:
+        ---
+        ${KNOWLEDGE_BASE_CONTENT}
+        ---
+
+        【用户实时养殖数据】:
+        ---
+        ${JSON.stringify(userData, null, 2)}
+        ---
+
+        【用户备注】:
+        ---
+        ${userData.remarks}
+        ---
+
+        请根据以上所有信息，做出最终的投喂量裁决。
+        `;
+
+        const response = await fetch("https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions", {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${apiKey}`,
+            },
+            body: JSON.stringify({
+                model: "qwen-plus",
+                messages: [
+                    { role: "system", content: system_prompt },
+                    { role: "user", content: user_prompt }
+                ]
+            })
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(`API 请求失败: ${errorData.error.message || response.statusText}`);
+        }
+
+        const data = await response.json();
+        return data.choices[0].message.content;
+    }
+
+    // ==============================================================================
+    //                                 UI & 数据处理
+    // ==============================================================================
+
+    function setLoading(isLoading) {
+        const btnText = document.getElementById('btn-text');
+        const loader = document.getElementById('loader');
+        const btnIcon = document.getElementById('btn-icon');
+
+        predictBtn.disabled = isLoading;
+        if (isLoading) {
+            btnText.textContent = '正在分析...';
+            loader.classList.remove('hidden');
+            btnIcon.classList.add('hidden');
+        } else {
+            btnText.textContent = '开始预测';
+            loader.classList.add('hidden');
+            btnIcon.classList.remove('hidden');
+        }
+    }
+
+    function displayResults(lgbmPred, formulaPred, finalRecommendationText) {
+        resultContent.innerHTML = `
+            <div class="result-card p-4 border rounded-lg bg-gray-50">
+                <h3 class="text-lg text-gray-700">1. LightGBM 模型预测 (模拟)</h3>
+                <p class="text-2xl font-bold text-blue-600">${lgbmPred.toFixed(4)} <span class="text-sm font-medium text-gray-500">kg</span></p>
+                <p class="text-xs text-gray-400 mt-1">这是一个基于关键参数的模拟数据驱动预测。</p>
+            </div>
+            <div class="result-card p-4 border rounded-lg bg-gray-50">
+                <h3 class="text-lg text-gray-700">2. 内置公式计算</h3>
+                <p class="text-2xl font-bold text-green-600">${formulaPred.pred ? formulaPred.pred.toFixed(4) : 'N/A'} <span class="text-sm font-medium text-gray-500">kg</span></p>
+                <pre class="text-xs text-gray-500 mt-2 whitespace-pre-wrap">${formulaPred.explanation}</pre>
+            </div>
+            <div class="result-card p-4 border rounded-lg bg-blue-50 border-blue-200">
+                <h3 class="text-lg text-gray-800">3. 最终专家决策</h3>
+                <div class="prose prose-sm max-w-none">${marked.parse(finalRecommendationText)}</div>
+            </div>
+        `;
+        resultContainer.classList.remove('hidden');
+    }
+
+    function displayError(message) {
+        resultContent.innerHTML = `
+            <div class="p-4 bg-red-100 border border-red-400 text-red-700 rounded-lg">
+                <h3 class="font-bold">发生错误</h3>
+                <p>${message}</p>
+            </div>
+        `;
+        resultContainer.classList.remove('hidden');
+    }
+
+    function getLogs() {
+        return JSON.parse(localStorage.getItem('feedingLog') || '[]');
+    }
+
+    function saveLogs(logs) {
+        localStorage.setItem('feedingLog', JSON.stringify(logs));
+    }
+
+    function loadLog() {
+        const logs = getLogs();
+        const thead = logTableContainer.querySelector('thead');
+        thead.innerHTML = `
+            <tr>
+                ${logHeaders.map(h => `<th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">${h.replace(/_/g, ' ')}</th>`).join('')}
+            </tr>
+        `;
+
+        if (logs.length === 0) {
+            noLogMessage.classList.remove('hidden');
+            logTableBody.innerHTML = '';
+        } else {
+            noLogMessage.classList.add('hidden');
+            logTableBody.innerHTML = logs.map(log => `
+                <tr>
+                    ${logHeaders.map(h => `<td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${log[h] || ''}</td>`).join('')}
+                </tr>
+            `).join('');
+        }
+    }
+
+    function logData(userData, lgbmPred, formulaPred, finalRecommendationText) {
+        const finalAmountMatch = finalRecommendationText.match(/【最终投喂量】:\s*(\d+\.?\d*)/);
+        const finalAmount = finalAmountMatch ? parseFloat(finalAmountMatch[1]) : '提取失败';
+
+        const newLogEntry = {
+            Date: new Date().toLocaleDateString('sv'), // YYYY-MM-DD
+            month_day: userData.month_day,
+            system_id: userData.system_id,
+            weight: userData.weight,
+            shrimp_loading_cap: userData.shrimp_loading_cap,
+            LGBM_Prediction_kg: lgbmPred.toFixed(4),
+            Formula_Prediction_kg: formulaPred.pred ? formulaPred.pred.toFixed(4) : 'N/A',
+            Final_Predicted_Amount_kg: typeof finalAmount === 'number' ? finalAmount.toFixed(4) : finalAmount,
+            Actual_Feeding_Amount_kg: userData.actual_feeding_amount,
+            Remarks: userData.remarks,
+        };
+
+        const logs = getLogs();
+        logs.push(newLogEntry);
+        saveLogs(logs);
+        loadLog(); // 刷新表格
+    }
+
+    function getHistoricalDataAsString() {
+        const logs = getLogs();
+        if (logs.length === 0) return "尚无历史投喂记录。";
+
+        const recentLogs = logs.slice(-10);
+        let logString = "Date, Final_Predicted_Amount_kg, Actual_Feeding_Amount_kg, Remarks\n";
+        recentLogs.forEach(log => {
+            logString += `${log.Date}, ${log.Final_Predicted_Amount_kg}, ${log.Actual_Feeding_Amount_kg}, "${log.Remarks || ''}"\n`;
+        });
+        return logString;
+    }
+
+    function downloadLog() {
+        const logs = getLogs();
+        if (logs.length === 0) {
+            alert("没有日志可供下载。");
+            return;
+        }
+
+        const csvHeader = logHeaders.join(',') + '\n';
+        const csvBody = logs.map(log =>
+            logHeaders.map(header => {
+                let value = log[header] === undefined || log[header] === null ? '' : log[header];
+                if (typeof value === 'string' && (value.includes(',') || value.includes('"'))) {
+                    return `"${value.replace(/"/g, '""')}"`;
+                }
+                return value;
+            }).join(',')
+        ).join('\n');
+
+        const csvContent = csvHeader + csvBody;
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement("a");
+        if (link.download !== undefined) {
+            const url = URL.createObjectURL(blob);
+            link.setAttribute("href", url);
+            link.setAttribute("download", `feeding_log_${new Date().toISOString().split('T')[0]}.csv`);
+            link.style.visibility = 'hidden';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+    }
+});
+</script>
+
+</body>
+</html>
+
